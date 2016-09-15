@@ -52,5 +52,8 @@ for pop_news in popular.contents[1].find_all("a") :
 
 #crawling ke url yang ada di list
 artikel_populer = []
+#belum dites yg dibawah ini msh ada kemungkinan error
+for link_pop in popnews_link_list 
+   soup_pop = BeautifulSoup (urllib.urlopen(link_pop).read())
 
      
