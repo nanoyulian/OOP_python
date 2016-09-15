@@ -50,5 +50,7 @@ for pop_news in popular.contents[1].find_all("a") :
    #enter   
    print "\n"
 
-        
+#crawling ke url yang ada di list
+artikel_populer = []
+
      
