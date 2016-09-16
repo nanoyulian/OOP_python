@@ -89,8 +89,9 @@ for link_pop in popnews_link_list :
 #for x in artikel_populer : print x,"\n"
 
 print "Waktu Proses Scrapping :", time.time() - start_time, "Detik"
-start_time = time.time() 
+
 #prosess cleaning artikel bersihkan tag script di msg2x artikel
+start_time = time.time() 
 artikel_populer_noscript = []
 for x in artikel_populer :
     y = BeautifulSoup(str(x))
@@ -106,11 +107,23 @@ def remove_tags(text):
     return ''.join(ET.fromstring(text).itertext())
    
 for x in artikel_populer_noscript : 
-    x = remove_tags(str(x))
-    #print x,"\n"    
-
+    x = remove_tags(str(x))    
+    #print x,"\n" 
+    artikel_populer_notag.append(x)
+    
+artikel_populer_notag_noenter = []
+for x in artikel_populer_notag :
+    y = str(x).replace("\n", "")
+    print y,"\n"
+    artikel_populer_notag_noenter.append(y)
+    
+#artikel tanpa image ... 
+    
 print "Waktu Proses Cleaning :", time.time() - start_time, "Detik"
-print "jumlah artikel Populer :", len(artikel_populer_noscript)
+    
+####### End OF artikel Cleaning ##################
+
+print "jumlah artikel Populer :", len( artikel_populer_notag_noenter)
 
 #Import list judul dan artikel populer ke file XML
 
