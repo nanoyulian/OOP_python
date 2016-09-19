@@ -26,13 +26,14 @@ Algorithm :
 """
 from bs4 import BeautifulSoup
 import urllib
+#import requests
 
 import time
 start_time = time.time()
 
-
 #koneksi ke url dan baca , simpan dalam variabel r (string)
 r = urllib.urlopen('http://www.detik.com').read()
+#r = requests.get('http://www.detik.com')
 #buat objek dari BeautifulSoup(r) dgn parameter string
 soup = BeautifulSoup(r) 
 #print type(soup)
@@ -108,7 +109,6 @@ def remove_tags(text):
    
 for x in artikel_populer_noscript : 
     x = remove_tags(str(x))    
-    #print x,"\n" 
     artikel_populer_notag.append(x)
     
 artikel_populer_notag_noenter = []
@@ -125,6 +125,33 @@ print "Waktu Proses Cleaning :", time.time() - start_time, "Detik"
 
 print "jumlah artikel Populer :", len( artikel_populer_notag_noenter)
 
-#Import list judul dan artikel populer ke file XML
+##Import list judul dan artikel populer ke file XML
+#There are three helper functions useful
+# for creating a hierarchy of Element nodes. 
+# Element() creates a standard node, 
+#SubElement() attaches a new node to a parent,
+# and Comment() creates a node that serializes using XML’s comment syntax.
+from xml.etree.ElementTree import Element, SubElement, Comment
+from xml.dom import minidom
 
-    
+def prettify(elem):
+    """Return a pretty-printed XML string for the Element.
+    """
+    rough_string = ET.tostring(elem, 'utf-8')
+    reparsed = minidom.parseString(rough_string)
+    return reparsed.toprettyxml(indent="  ")
+
+articles = Element('articles')
+comment = Comment('Generated from detik.com')
+articles.append(comment)
+for x,y in zip(jdl_artikel,artikel_populer_notag_noenter) :
+    article = SubElement(articles, 'article')
+    article_title = SubElement(article, 'article_title')
+    article_title.text = x
+    article_content = SubElement(article,'article_content')
+    article_content.text = y
+
+#print prettify(articles)
+
+tree = ET.ElementTree(articles)
+tree.write("articles.xml")   
