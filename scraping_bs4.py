@@ -13,7 +13,6 @@ http://stackoverflow.com/questions/2136267/beautiful-soup-and-extracting-a-div-a
 http://stackoverflow.com/questions/20968562/how-to-convert-a-bs4-element-resultset-to-strings-python
 
 Tujuan : Scrapping artikel2x populer di www.detik.com
-Algorithm : 
 1. set url yang akan di crawl dan scrap
 2. filter tag dan id yang berisi link berita populer
 3. filter semua tag <a> yg ada berdasarkan hasil langkah 2, dan simpan isi 
@@ -27,131 +26,99 @@ Algorithm :
 from bs4 import BeautifulSoup
 import urllib
 #import requests
-
 import time
-start_time = time.time()
-
-#koneksi ke url dan baca , simpan dalam variabel r (string)
-r = urllib.urlopen('http://www.detik.com').read()
-#r = requests.get('http://www.detik.com')
-#buat objek dari BeautifulSoup(r) dgn parameter string
-soup = BeautifulSoup(r) 
-#print type(soup)
-
-#melakukan prettify pada string html, sekaligus slicing dari karakter 0-10000
-#html =  soup.prettify()[0:10000]
-
-#mencari Filter <Div id> untuk berita terpopuler di detik simpan di dalam variabel popular
-popular = soup.find("div",attrs={'id':'box-pop'})
-#print popular
-
-#definisikan list popnews link, buat nampung link berita populer dan jdl_artikel
-popnews_link_list = []
-jdl_artikel = []
-
-#menelusuri popular.contents[1] yg ada tag <a> 
-for pop_news in popular.contents[1].find_all("a") :
-   #mendapatkan isi dari attribut <href> dan tambahkan pada list
-   popnews_link_list.append(pop_news.get('href'))
-   #print link berita populer
-   #print pop_news.get('href')  
-   #enter   
-   #print "\n"
-
-#menelusuri popular.contents[1] yg ada tag <span class = normal> judul
-for pop_news in popular.contents[1].findAll("span",{"class":"normal"}) :
-   #mendapatkan isi dari attribut <href> dan tambahkan pada list
-   jdl_artikel.append(pop_news.string)
-   #print link berita populer
-   #print pop_news.string
-   #enter   
-   #print "\n"
-   
-#crawling ke url yang ada di list
-artikel_populer = []
-#belum dites yg dibawah ini msh ada kemungkinan error
-for link_pop in popnews_link_list :
-    soup_pop = BeautifulSoup (urllib.urlopen(link_pop).read())   
-   
-    #pastikan bukan popup konten Dewasa
-    if soup_pop.title.string != "18+ Materi Khusus Dewasa" :
-        #search class = 'detail_text' atau 'text_detail'
-        soup_pop_artikel = soup_pop.find("div",{'class':'detail_text'})
-        if soup_pop_artikel == None : 
-            soup_pop_artikel = soup_pop.find('div',{'class':'text_detail'})
-        #print soup_pop_artikel
-        #print "\n"
-        #append tiap artikel populer ke array
-        artikel_populer.append(soup_pop_artikel)
-    else : 
-        artikel_populer.append("Konten Dewasa 18+")   
-    
-#cek isi list artikel_populer harus sama dengan jumlah jdl_artikel
-#for x in artikel_populer : print x,"\n"
-
-print "Waktu Proses Scrapping :", time.time() - start_time, "Detik"
-
-#prosess cleaning artikel bersihkan tag script di msg2x artikel
-start_time = time.time() 
-artikel_populer_noscript = []
-for x in artikel_populer :
-    y = BeautifulSoup(str(x))
-    for scripttag in y.find_all('script'):
-        scripttag.extract()
-    #print y,"\n"
-    artikel_populer_noscript.append(y)
-
-artikel_populer_notag = []
-
 import xml.etree.cElementTree as ET
-def remove_tags(text):
-    return ''.join(ET.fromstring(text).itertext())
-   
-for x in artikel_populer_noscript : 
-    x = remove_tags(str(x))    
-    artikel_populer_notag.append(x)
-    
-artikel_populer_notag_noenter = []
-for x in artikel_populer_notag :
-    y = str(x).replace("\n", "")
-    print y,"\n"
-    artikel_populer_notag_noenter.append(y)
-    
-#artikel tanpa image ... 
-    
-print "Waktu Proses Cleaning :", time.time() - start_time, "Detik"
-    
-####### End OF artikel Cleaning ##################
-
-print "jumlah artikel Populer :", len( artikel_populer_notag_noenter)
-
-##Import list judul dan artikel populer ke file XML
-#There are three helper functions useful
-# for creating a hierarchy of Element nodes. 
-# Element() creates a standard node, 
-#SubElement() attaches a new node to a parent,
-# and Comment() creates a node that serializes using XML’s comment syntax.
 from xml.etree.ElementTree import Element, SubElement, Comment
 from xml.dom import minidom
 
-def prettify(elem):
-    """Return a pretty-printed XML string for the Element.
-    """
-    rough_string = ET.tostring(elem, 'utf-8')
-    reparsed = minidom.parseString(rough_string)
-    return reparsed.toprettyxml(indent="  ")
+class DetikCrawlScrap:
+    
+    #class variable for popular news
+    popnews_link_list = []
+    jdl_artikel = []  
+    artikel_populer_notag_noenter = []
+       
+    def __init__(self):      
+        r = urllib.urlopen('http://www.detik.com').read()     
+        self.soup = BeautifulSoup(r,"lxml")     
+        self.start_time = time.time()
+    
+    def __remove_tags(self,text):
+        return ''.join(ET.fromstring(text).itertext())
+                
+    def popular_news_process(self):
+        popular = self.soup.find("div",attrs={'id':'box-pop'})       
+       
+        for pop_news in popular.contents[1].find_all("a") :
+           self.popnews_link_list.append(pop_news.get('href'))
+        
+        #menelusuri popular.contents[1] yg ada tag <span class = normal> judul
+        for pop_news in popular.contents[1].findAll("span",{"class":"normal"}) :
+           self.jdl_artikel.append(pop_news.string)
+        
+        artikel_populer = []
+        for link_pop in self.popnews_link_list :
+            soup_pop = BeautifulSoup (urllib.urlopen(link_pop).read())              
+            #pastikan bukan popup konten Dewasa
+            if soup_pop.title.string != "18+ Materi Khusus Dewasa" :
+                #search class = 'detail_text' atau 'text_detail'
+                soup_pop_artikel = soup_pop.find("div",{'class':'detail_text'})
+                if soup_pop_artikel == None : 
+                    soup_pop_artikel = soup_pop.find('div',{'class':'text_detail'})               
+                artikel_populer.append(soup_pop_artikel)                
+            else : 
+                artikel_populer.append("Konten Dewasa 18+")          
+            
+        artikel_populer_noscript = []
+        for x in artikel_populer :
+            y = BeautifulSoup(str(x))
+            for scripttag in y.find_all('script'):
+                scripttag.extract()
+            #print ap_bs
+            artikel_populer_noscript.append(y)
+        
+        artikel_populer_notag = []                 
+        for x in artikel_populer_noscript : 
+            y = self.__remove_tags(str(x))   
+            #print y
+            artikel_populer_notag.append(y)                
+        
+        for x in artikel_populer_notag :
+            y = x.replace("\n", "")
+            #print y,"\n"
+            self.artikel_populer_notag_noenter.append(y)
+    
+    ##Import list judul dan artikel populer ke file XML
+    #There are three helper functions useful
+    # for creating a hierarchy of Element nodes. 
+    # Element() creates a standard node, 
+    #SubElement() attaches a new node to a parent,
+    # and Comment() creates a node that serializes using XML’s comment syntax.
+    
+    def export_pop_toxml(self,filename,arr_jdl,arr_artikel):
+        def prettify(elem):           
+            rough_string = ET.tostring(elem, 'utf-8')
+            reparsed = minidom.parseString(rough_string)
+            return reparsed.toprettyxml(indent="  ")
 
-articles = Element('articles')
-comment = Comment('Generated from detik.com')
-articles.append(comment)
-for x,y in zip(jdl_artikel,artikel_populer_notag_noenter) :
-    article = SubElement(articles, 'article')
-    article_title = SubElement(article, 'article_title')
-    article_title.text = x
-    article_content = SubElement(article,'article_content')
-    article_content.text = y
+        articles = Element('articles')
+        comment = Comment('Generated from detik.com')
+        articles.append(comment)
+        for x,y in zip(arr_jdl,arr_artikel) :
+            article = SubElement(articles, 'article')
+            article_title = SubElement(article, 'article_title')
+            article_title.text = x
+            article_content = SubElement(article,'article_content')
+            article_content.text = y
+   
+        tree = ET.ElementTree(articles)
+        tree.write(filename)
 
-#print prettify(articles)
+##### APLIKASI START DISINI (MAIN) #########
+pop = DetikCrawlScrap()
+pop.popular_news_process()
+pop.export_pop_toxml("articleOOP.xml",pop.jdl_artikel,pop.artikel_populer_notag_noenter)
+#pop.__artikel_populer_notag_noenter
 
-tree = ET.ElementTree(articles)
-tree.write("articles.xml")   
+
+   
