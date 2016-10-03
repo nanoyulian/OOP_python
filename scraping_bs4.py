@@ -25,39 +25,42 @@ Tujuan : Scrapping artikel2x populer di www.detik.com
 """
 from bs4 import BeautifulSoup
 import urllib
-#import requests
 import time
 import xml.etree.cElementTree as ET
 from xml.etree.ElementTree import Element, SubElement, Comment
-from xml.dom import minidom
 
 class DetikCrawlScrap:
     
     #class variable for popular news
-    popnews_link_list = []
+    __popnews_link_list = []
     jdl_artikel = []  
     artikel_populer_notag_noenter = []
-       
+    __process_time = 0
+    
     def __init__(self):      
         r = urllib.urlopen('http://www.detik.com').read()     
-        self.soup = BeautifulSoup(r,"lxml")     
-        self.start_time = time.time()
-    
+        self.soup = BeautifulSoup(r)     
+        self.__process_time = time.time()
+        print self.__process_time
+        
     def __remove_tags(self,text):
         return ''.join(ET.fromstring(text).itertext())
                 
     def popular_news_process(self):
         popular = self.soup.find("div",attrs={'id':'box-pop'})       
-       
+        
+        append = self.__popnews_link_list.append
         for pop_news in popular.contents[1].find_all("a") :
-           self.popnews_link_list.append(pop_news.get('href'))
+           append(pop_news.get('href'))
         
         #menelusuri popular.contents[1] yg ada tag <span class = normal> judul
+        append = self.jdl_artikel.append
         for pop_news in popular.contents[1].findAll("span",{"class":"normal"}) :
-           self.jdl_artikel.append(pop_news.string)
+           append(pop_news.string)
         
         artikel_populer = []
-        for link_pop in self.popnews_link_list :
+        append = artikel_populer.append
+        for link_pop in self.__popnews_link_list :
             soup_pop = BeautifulSoup (urllib.urlopen(link_pop).read())              
             #pastikan bukan popup konten Dewasa
             if soup_pop.title.string != "18+ Materi Khusus Dewasa" :
@@ -65,28 +68,35 @@ class DetikCrawlScrap:
                 soup_pop_artikel = soup_pop.find("div",{'class':'detail_text'})
                 if soup_pop_artikel == None : 
                     soup_pop_artikel = soup_pop.find('div',{'class':'text_detail'})               
-                artikel_populer.append(soup_pop_artikel)                
+                append(soup_pop_artikel)                
             else : 
-                artikel_populer.append("Konten Dewasa 18+")          
+                append("Konten Dewasa 18+")          
             
         artikel_populer_noscript = []
+        append = artikel_populer_noscript.append
         for x in artikel_populer :
             y = BeautifulSoup(str(x))
             for scripttag in y.find_all('script'):
                 scripttag.extract()
             #print ap_bs
-            artikel_populer_noscript.append(y)
+            append(y)
         
-        artikel_populer_notag = []                 
+        artikel_populer_notag = []   
+        append = artikel_populer_notag.append              
         for x in artikel_populer_noscript : 
             y = self.__remove_tags(str(x))   
             #print y
-            artikel_populer_notag.append(y)                
+            append(y)                
         
+        append = self.artikel_populer_notag_noenter.append
         for x in artikel_populer_notag :
             y = x.replace("\n", "")
             #print y,"\n"
-            self.artikel_populer_notag_noenter.append(y)
+            append(y)
+        
+        self.__process_time = time.time() - self.__process_time
+        
+        return self.jdl_artikel, self.artikel_populer_notag_noenter, self.__process_time
     
     ##Import list judul dan artikel populer ke file XML
     #There are three helper functions useful
@@ -96,10 +106,6 @@ class DetikCrawlScrap:
     # and Comment() creates a node that serializes using XML’s comment syntax.
     
     def export_pop_toxml(self,filename,arr_jdl,arr_artikel):
-        def prettify(elem):           
-            rough_string = ET.tostring(elem, 'utf-8')
-            reparsed = minidom.parseString(rough_string)
-            return reparsed.toprettyxml(indent="  ")
 
         articles = Element('articles')
         comment = Comment('Generated from detik.com')
@@ -116,9 +122,21 @@ class DetikCrawlScrap:
 
 ##### APLIKASI START DISINI (MAIN) #########
 pop = DetikCrawlScrap()
-pop.popular_news_process()
-pop.export_pop_toxml("articleOOP.xml",pop.jdl_artikel,pop.artikel_populer_notag_noenter)
-#pop.__artikel_populer_notag_noenter
+x,y,t = pop.popular_news_process() #return list judul artikel (x) dan list artikel populer (y)
+# 3 Arguments ("namafile",list_judul,list_artikel)
+#x = ["judul1","judul2","judul3"]
+#y = ["art1","art2","art3"]
+#t = waktu proses
+pop.export_pop_toxml("articleOOP.xml",x,y)
+print ("waktu Proses : %f detik" % t)
 
+pop2 = DetikCrawlScrap()
+x,y,t = pop2.popular_news_process() #return list judul artikel (x) dan list artikel populer (y)
+# 3 Arguments ("namafile",list_judul,list_artikel)
+#x = ["judul1","judul2","judul3"]
+#y = ["art1","art2","art3"]
+#t = waktu proses
+pop2.export_pop_toxml("articleOOP2.xml",x,y)
+print ("waktu Proses : %f detik" % t)
 
-   
+pop3 = DetikCrawlScrap()
