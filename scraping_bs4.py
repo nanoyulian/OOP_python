@@ -37,16 +37,16 @@ class DetikCrawlScrap:
     artikel_populer_notag_noenter = []
     __process_time = 0
     
-    def __init__(self):      
-        r = urllib.urlopen('http://www.detik.com').read()     
-        self.soup = BeautifulSoup(r)     
-        self.__process_time = time.time()
-        print self.__process_time
+    def __init__(self):              
+       r = urllib.urlopen('http://www.detik.com').read()     
+       self.soup = BeautifulSoup(r,'lxml')             
         
     def __remove_tags(self,text):
         return ''.join(ET.fromstring(text).itertext())
                 
     def popular_news_process(self):
+        self.__process_time = time.time()
+        
         popular = self.soup.find("div",attrs={'id':'box-pop'})       
         
         append = self.__popnews_link_list.append
@@ -61,7 +61,8 @@ class DetikCrawlScrap:
         artikel_populer = []
         append = artikel_populer.append
         for link_pop in self.__popnews_link_list :
-            soup_pop = BeautifulSoup (urllib.urlopen(link_pop).read())              
+            rpop = urllib.urlopen(link_pop).read()
+            soup_pop = BeautifulSoup (rpop,'lxml')              
             #pastikan bukan popup konten Dewasa
             if soup_pop.title.string != "18+ Materi Khusus Dewasa" :
                 #search class = 'detail_text' atau 'text_detail'
@@ -106,7 +107,6 @@ class DetikCrawlScrap:
     # and Comment() creates a node that serializes using XML’s comment syntax.
     
     def export_pop_toxml(self,filename,arr_jdl,arr_artikel):
-
         articles = Element('articles')
         comment = Comment('Generated from detik.com')
         articles.append(comment)
@@ -122,21 +122,11 @@ class DetikCrawlScrap:
 
 ##### APLIKASI START DISINI (MAIN) #########
 pop = DetikCrawlScrap()
-x,y,t = pop.popular_news_process() #return list judul artikel (x) dan list artikel populer (y)
-# 3 Arguments ("namafile",list_judul,list_artikel)
-#x = ["judul1","judul2","judul3"]
-#y = ["art1","art2","art3"]
-#t = waktu proses
-pop.export_pop_toxml("articleOOP.xml",x,y)
-print ("waktu Proses : %f detik" % t)
-
-pop2 = DetikCrawlScrap()
-x,y,t = pop2.popular_news_process() #return list judul artikel (x) dan list artikel populer (y)
-# 3 Arguments ("namafile",list_judul,list_artikel)
-#x = ["judul1","judul2","judul3"]
-#y = ["art1","art2","art3"]
-#t = waktu proses
-pop2.export_pop_toxml("articleOOP2.xml",x,y)
-print ("waktu Proses : %f detik" % t)
-
-pop3 = DetikCrawlScrap()
+for i in range(10):
+    x,y,t = pop.popular_news_process() #return list judul artikel (x) dan list artikel populer (y)
+    # 3 Arguments ("namafile",list_judul,list_artikel)
+    #x = ["judul1","judul2","judul3"]
+    #y = ["art1","art2","art3"]
+    #t = waktu proses
+    pop.export_pop_toxml("articleOOP-%d.xml"% i,x,y)
+    print ("waktu Proses : %f detik" % t)
