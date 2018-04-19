@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% block head %}
+    <link rel="stylesheet" href="style.css" />
+    <title>{% block title %}{% endblock %} - Flask-Nano WebPage</title>
+    {% endblock %}
+</head>
+<body>
+    <div id="content">{% block content %}{% endblock %}</div>
+    <div id="footer">
+    <hr>
+        {% block footer %}
+        Copyright 2018 by <a href="https://nanoyulian.com/">nanoyulian</a>.
+        {% endblock %}
+    </div>
+</body>
+</html>
