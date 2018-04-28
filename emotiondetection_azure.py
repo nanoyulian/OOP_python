@@ -1,4 +1,4 @@
-########### Python 2.7 #############
+########### Python 2.7 ##############
 #import library
 import requests
 import operator
@@ -7,8 +7,9 @@ import time
 import cv2
 import numpy as np
 
-
-####################################
+# Import library to display results
+import matplotlib.pyplot as plt
+#####################################
 
 def calculate_atensi(count_pos, num_faces):
     """
@@ -18,11 +19,30 @@ def calculate_atensi(count_pos, num_faces):
     :param num_faces : jumlah wajah yg terdeteksi dari hasil API faceID azure.
 
     :return atensi : (persentase)
-    """
-    
+    """    
     return (count_pos / num_faces) * 100
 
+
+def renderResultOnImage( result, img ):
+    """Display the obtained results onto the input image"""
     
+    #change string to dict
+    result = eval(result)
+    for currFace in result:
+        print currFace
+        faceRectangle = currFace['faceRectangle']
+        cv2.rectangle( img,(faceRectangle['left'],faceRectangle['top']),
+                           (faceRectangle['left']+faceRectangle['width'], faceRectangle['top'] + faceRectangle['height']),
+                       color = (255,0,0), thickness = 5 )
+                       
+    for currFace in result:
+        faceRectangle = currFace['faceRectangle']
+        currEmotion = max(currFace['faceAttributes']['emotion'].items(), key=operator.itemgetter(1))[0]
+
+        textToWrite = str(currEmotion) 
+        cv2.putText( img, textToWrite, (faceRectangle['left'],faceRectangle['top']-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,0), 1 )
+        
+        
 def load_image_data(path):
     """
     fungsi mengambil data_image (lokal disk) pada folder/path tertentu untuk dianalisis.
@@ -41,7 +61,6 @@ def load_image_data(path):
 
     # To Do
     # Mekanisme ambil file gambarnya gimana??? terserah ente.. 
-
     
     return image_data 
 
@@ -50,11 +69,11 @@ def send_notification():
     """
     fungsi mengirimkan notif ke dosen atau sistem lain terkait kondisi kelas berdasarkan atensi.
     """
-    
     # To Do 
 
     return "Success, atensi kelas .... "
     
+
 ################## ENTRY POINT #################################
 if __name__ == "__main__":
     
@@ -68,13 +87,13 @@ if __name__ == "__main__":
         
         #load image   SEMENTARA MASIH YG ONLINE.. TINGGAL GANTI YG LOKAL PATHNYA PAKE FUNGSI load_image     
         #image_url = 'foto-bersama1.jpg'      
-        image_data = load_image_data('foto-bersama1.jpg')        
+        image_data = load_image_data(r'foto-bersama1.jpg')        
         #print image_data
         
         #header yg dikirim
         headers = { 
             'Ocp-Apim-Subscription-Key': subscription_key,
-            #ini diperlukan karena ngirim dari local disk.!!
+             #ini diperlukan karena ngirim dari local disk.!!
             'Content-type': 'application/octet-stream',
         }
         #parameter url API, see docs reference nya face API
@@ -82,6 +101,7 @@ if __name__ == "__main__":
             'returnFaceId': 'true',
             'returnFaceLandmarks': 'false',
             'returnFaceAttributes': 'age,gender,emotion',
+            
         }
         #karena load dari disk json = None, kalau dari url baru pake json
         json = None
@@ -95,7 +115,7 @@ if __name__ == "__main__":
             #jumlah face yang dideteksi    
             num_faces = len(response.json())
             #print num_faces
-            print response.json()
+            #print response.json()
             
             # kelompok mood : negative (sadness, disgust, contempt, anger, fear) 
             #                 positive (happiness, surprise, netral)    
@@ -108,7 +128,7 @@ if __name__ == "__main__":
             for i in range(0,num_faces):
                 #untuk setiap face dapetin kategori emosinya yang nilainya paling maksimal
                 emotion = max(response.json()[i]['faceAttributes']['emotion'].iteritems(), key=operator.itemgetter(1))[0]
-                print emotion        
+                #print emotion        
                 #kategori emotion di hitung
                 if emotion == 'sadness' or emotion == 'fear' or emotion == 'disgust' or emotion == 'contempt' or emotion == 'anger':
                     # tambah ke jumlah face yg negatif
@@ -118,10 +138,22 @@ if __name__ == "__main__":
                     count_pos += 1
                     
             #tampilkan jumlah face yg positif dan negatif
-            print "count neg = %d , count_pos = %d " % (count_neg,count_pos)            
+            print "count neg = %d , count_pos = %d " % (count_neg,count_pos)
             #tampilkan level atensi
             atensi = 0.0 #*** To Do :) 
             print "Level Atensi (0-100) : ", calculate_atensi(count_pos,num_faces)    
+            
+            #tampilkan image
+            result = response.content
+            if result is not None:
+                # Load the original image from disk
+                data8uint = np.fromstring(image_data, np.uint8 ) # Convert string to an unsigned int array
+                img = cv2.cvtColor( cv2.imdecode( data8uint, cv2.IMREAD_COLOR ), cv2.COLOR_BGR2RGB )
+                #print result
+                renderResultOnImage(result, img)
+                #plot show
+                ig, ax = plt.subplots(figsize=(15, 20))
+                ax.imshow( img )
             
             #insert data ke thingspeak (database online service API) SESUAIKAN KOLOM2XNYA.. INI MASIH ADA JENIS KELAMINNYA JADI DIISI undefined_jeniskel
             url_insert = "https://api.thingspeak.com/update?api_key=9DV9Y5S7FKZAR5P0&field1=" + 'undefined_jenisKel' + "&field2= %f" % atensi
@@ -129,13 +161,13 @@ if __name__ == "__main__":
             data = {
                 'timeout': 60
             }   
-            response = requests.post(url_insert,data=data)
-            
+            response = requests.post(url_insert,data=data)            
             print "status insert ", response
-        
+                    
         else:
             print response.json()['error']['message']
             
-         # proses stop selama X detik / akan diulangi selama X detik. 
-        time.sleep(1*60)
+        # proses stop selama X detik / akan diulangi selama X detik. 
+        #time.sleep(1*60)
+        break
 ####################################################################################
